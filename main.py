@@ -12,6 +12,31 @@ import plotly.express as px
 
 st.set_page_config(page_title="Análisis de Inversión en Propiedades en Costa Rica", layout="wide")
 
+# Define constants
+# Property Details defaults
+DEFAULT_NUM_CONTAINERS = 4
+DEFAULT_LAND_COST = 200000
+DEFAULT_CONTAINER_COST = 18000
+DEFAULT_ONE_TIME_COSTS = 40000  # Swimming pool, landscaping, permits, etc.
+
+# Revenue Parameter defaults
+DEFAULT_PRICE_PER_NIGHT = 70
+DEFAULT_OCCUPANCY_RATE = 0.60
+DEFAULT_DAYS_PER_MONTH = 29
+
+# Monthly Cost defaults
+DEFAULT_MORTGAGE_PAYMENT = 1000
+DEFAULT_UTILITIES_COST_PER_UNIT = 100
+DEFAULT_MANAGEMENT_COST = 500
+AIRBNB_COMMISSION = 0.05
+
+# Annual Cost defaults (as percentages)
+DEFAULT_PROPERTY_TAX_RATE = 0.0025  # 0.25%
+DEFAULT_INSURANCE_RATE = 0.01  # 1%
+DEFAULT_MAINTENANCE_RATE = 0.02  # 2%
+DEFAULT_REPAIR_RESERVE_RATE = 0.01  # 1%
+
+
 def main():
     st.title("Análisis de Inversión en Propiedades en Costa Rica")
     st.write("Analice la rentabilidad de su inversión en casas contenedor para Airbnb en Guanacaste")
@@ -21,46 +46,54 @@ def main():
 
     # Property Details
     st.sidebar.subheader("Detalles de la Propiedad")
-    num_containers = st.sidebar.number_input("Número de Contenedores", min_value=1, value=4)
-    land_cost = st.sidebar.number_input("Costo del Terreno (USD)", min_value=0, value=100000)
-    container_cost = st.sidebar.number_input("Costo por Contenedor (USD)", min_value=0, value=16000)
+    num_containers = st.sidebar.number_input("Número de Contenedores", min_value=1, value=DEFAULT_NUM_CONTAINERS)
+    land_cost = st.sidebar.number_input("Costo del Terreno (USD)", min_value=0, value=DEFAULT_LAND_COST)
+    container_cost = st.sidebar.number_input("Costo por Contenedor (USD)", min_value=0, value=DEFAULT_CONTAINER_COST)
+    one_time_costs = st.sidebar.number_input("Costos Únicos (USD)", min_value=0, value=DEFAULT_ONE_TIME_COSTS, help="Piscina, paisajismo, permisos, etc.")
 
     # Revenue Parameters
     st.sidebar.subheader("Parámetros de Ingresos")
-    price_per_night = st.sidebar.number_input("Precio por Noche (USD)", min_value=0, value=60)
-    occupancy_rate = st.sidebar.slider("Tasa de Ocupación (%)", 0, 100, 70) / 100
-    days_per_month = st.sidebar.number_input("Días por Mes", min_value=28, max_value=31, value=29)
+    price_per_night = st.sidebar.number_input("Precio por Noche (USD)", min_value=0, value=DEFAULT_PRICE_PER_NIGHT)
+    occupancy_rate = st.sidebar.slider("Tasa de Ocupación (%)", 0, 100, int(DEFAULT_OCCUPANCY_RATE * 100)) / 100
+    days_per_month = st.sidebar.number_input("Días por Mes", min_value=28, max_value=31, value=DEFAULT_DAYS_PER_MONTH)
 
     # Monthly Costs
     st.sidebar.subheader("Costos Mensuales")
-    mortgage_payment = st.sidebar.number_input("Pago Mensual de Hipoteca (USD)", min_value=0, value=1200)
-    utilities_cost = st.sidebar.number_input("Servicios Públicos Mensuales por Contenedor (USD)", min_value=0, value=100)
-    management_cost = st.sidebar.number_input("Administración de Propiedad Mensual (USD)", min_value=0, value=300)
+    mortgage_payment = st.sidebar.number_input("Pago Mensual de Hipoteca (USD)", min_value=0, value=DEFAULT_MORTGAGE_PAYMENT)
+    utilities_cost = st.sidebar.number_input("Servicios Públicos Mensuales por Contenedor (USD)", min_value=0, value=DEFAULT_UTILITIES_COST_PER_UNIT)
+    management_cost = st.sidebar.number_input("Administración de Propiedad Mensual (USD)", min_value=0, value=DEFAULT_MANAGEMENT_COST)
+    airbnb_commission = st.sidebar.slider("Comisión de Airbnb (%)", 0, 30, int(AIRBNB_COMMISSION * 100)) / 100
 
     # Annual Costs
     st.sidebar.subheader("Costos Anuales (% del Valor de la Propiedad)")
-    property_tax_rate = st.sidebar.slider("Tasa de Impuesto de Propiedad (%)", 0.0, 5.0, 0.25) / 100
-    insurance_rate = st.sidebar.slider("Tasa de Seguro (%)", 0.0, 5.0, 1.0) / 100
-    maintenance_rate = st.sidebar.slider("Tasa de Mantenimiento (%)", 0.0, 5.0, 2.0) / 100
-    repair_reserve_rate = st.sidebar.slider("Tasa de Reserva para Reparaciones (%)", 0.0, 5.0, 1.0) / 100
+    property_tax_rate = st.sidebar.slider("Tasa de Impuesto de Propiedad (%)", 0.0, 5.0, DEFAULT_PROPERTY_TAX_RATE) / 100
+    insurance_rate = st.sidebar.slider("Tasa de Seguro (%)", 0.0, 5.0, DEFAULT_INSURANCE_RATE) / 100
+    maintenance_rate = st.sidebar.slider("Tasa de Mantenimiento (%)", 0.0, 5.0, DEFAULT_MAINTENANCE_RATE) / 100
+    repair_reserve_rate = st.sidebar.slider("Tasa de Reserva para Reparaciones (%)", 0.0, 5.0, DEFAULT_REPAIR_RESERVE_RATE) / 100
 
     # Calculate initial investment
     total_container_cost = num_containers * container_cost
-    total_investment = land_cost + total_container_cost
+    total_investment = land_cost + total_container_cost + one_time_costs
 
     # Display initial investment breakdown
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("Costo del Terreno", f"${land_cost:,}")
     with col2:
         st.metric("Costo de Contenedores", f"${total_container_cost:,}")
     with col3:
+        st.metric("Costos Únicos", f"${one_time_costs:,}")
+    with col4:
         st.metric("Inversión Total", f"${total_investment:,}")
 
     # Calculate monthly revenue
     daily_revenue_per_container = price_per_night
     monthly_revenue_per_container = daily_revenue_per_container * days_per_month * occupancy_rate
-    total_monthly_revenue = monthly_revenue_per_container * num_containers
+    total_monthly_gross_revenue = monthly_revenue_per_container * num_containers
+    
+    # Apply Airbnb commission
+    airbnb_commission_amount = total_monthly_gross_revenue * airbnb_commission
+    total_monthly_revenue = total_monthly_gross_revenue - airbnb_commission_amount
 
     # Calculate monthly expenses
     total_utilities = utilities_cost * num_containers
@@ -78,7 +111,8 @@ def main():
         'Impuesto de Propiedad': monthly_property_tax,
         'Seguro': monthly_insurance,
         'Mantenimiento': monthly_maintenance,
-        'Reserva para Reparaciones': monthly_repair_reserve
+        'Reserva para Reparaciones': monthly_repair_reserve,
+        'Comisión Airbnb': airbnb_commission_amount
     }
 
     total_monthly_expenses = sum(expenses.values())
@@ -139,8 +173,10 @@ def main():
     
     for i, occ in enumerate(occupancy_variations):
         for j, price in enumerate(price_variations):
-            monthly_rev = price * days_per_month * occ * num_containers
-            annual_profit = (monthly_rev - total_monthly_expenses) * 12
+            monthly_gross_rev = price * days_per_month * occ * num_containers
+            monthly_airbnb_commission = monthly_gross_rev * airbnb_commission
+            monthly_net_rev = monthly_gross_rev - monthly_airbnb_commission
+            annual_profit = (monthly_net_rev - total_monthly_expenses + airbnb_commission_amount) * 12
             profits[i, j] = annual_profit
 
     sensitivity_df = pd.DataFrame(profits, 
