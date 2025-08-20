@@ -14,27 +14,31 @@ st.set_page_config(page_title="Análisis de Inversión en Propiedades en Costa R
 
 # Define constants
 # Property Details defaults
-DEFAULT_NUM_CONTAINERS = 4
+DEFAULT_NUM_CONTAINERS = 3
 DEFAULT_LAND_COST = 200000
 DEFAULT_CONTAINER_COST = 18000
 DEFAULT_ONE_TIME_COSTS = 40000  # Swimming pool, landscaping, permits, etc.
 
 # Revenue Parameter defaults
 DEFAULT_PRICE_PER_NIGHT = 70
-DEFAULT_OCCUPANCY_RATE = 0.60
+DEFAULT_OCCUPANCY_RATE = 60
 DEFAULT_DAYS_PER_MONTH = 29
 
 # Monthly Cost defaults
-DEFAULT_MORTGAGE_PAYMENT = 1000
+DEFAULT_MORTGAGE_PAYMENT = 600
 DEFAULT_UTILITIES_COST_PER_UNIT = 100
 DEFAULT_MANAGEMENT_COST = 500
-AIRBNB_COMMISSION = 0.05
+AIRBNB_COMMISSION = 3
 
 # Annual Cost defaults (as percentages)
-DEFAULT_PROPERTY_TAX_RATE = 0.0025  # 0.25%
-DEFAULT_INSURANCE_RATE = 0.01  # 1%
-DEFAULT_MAINTENANCE_RATE = 0.02  # 2%
-DEFAULT_REPAIR_RESERVE_RATE = 0.01  # 1%
+DEFAULT_PROPERTY_TAX_RATE = 0.25  
+DEFAULT_INSURANCE_RATE = 1.0  
+DEFAULT_MAINTENANCE_RATE = 2.0  
+DEFAULT_REPAIR_RESERVE_RATE = 2.0 
+
+# Investor Profile defaults
+DEFAULT_INVESTOR_2_CONTAINERS = 1
+DEFAULT_INVESTOR_1_CONTAINERS = DEFAULT_NUM_CONTAINERS - DEFAULT_INVESTOR_2_CONTAINERS
 
 
 def main():
@@ -46,7 +50,7 @@ def main():
 
     # Property Details
     st.sidebar.subheader("Detalles de la Propiedad")
-    num_containers = st.sidebar.number_input("Número de Contenedores", min_value=1, value=DEFAULT_NUM_CONTAINERS)
+    num_containers = st.sidebar.number_input("Número Total de Contenedores", min_value=1, value=DEFAULT_NUM_CONTAINERS)
     land_cost = st.sidebar.number_input("Costo del Terreno (USD)", min_value=0, value=DEFAULT_LAND_COST)
     container_cost = st.sidebar.number_input("Costo por Contenedor (USD)", min_value=0, value=DEFAULT_CONTAINER_COST)
     one_time_costs = st.sidebar.number_input("Costos Únicos (USD)", min_value=0, value=DEFAULT_ONE_TIME_COSTS, help="Piscina, paisajismo, permisos, etc.")
@@ -54,7 +58,7 @@ def main():
     # Revenue Parameters
     st.sidebar.subheader("Parámetros de Ingresos")
     price_per_night = st.sidebar.number_input("Precio por Noche (USD)", min_value=0, value=DEFAULT_PRICE_PER_NIGHT)
-    occupancy_rate = st.sidebar.slider("Tasa de Ocupación (%)", 0, 100, int(DEFAULT_OCCUPANCY_RATE * 100)) / 100
+    occupancy_rate = st.sidebar.slider("Tasa de Ocupación (%)", 0, 100, DEFAULT_OCCUPANCY_RATE) / 100
     days_per_month = st.sidebar.number_input("Días por Mes", min_value=28, max_value=31, value=DEFAULT_DAYS_PER_MONTH)
 
     # Monthly Costs
@@ -62,7 +66,7 @@ def main():
     mortgage_payment = st.sidebar.number_input("Pago Mensual de Hipoteca (USD)", min_value=0, value=DEFAULT_MORTGAGE_PAYMENT)
     utilities_cost = st.sidebar.number_input("Servicios Públicos Mensuales por Contenedor (USD)", min_value=0, value=DEFAULT_UTILITIES_COST_PER_UNIT)
     management_cost = st.sidebar.number_input("Administración de Propiedad Mensual (USD)", min_value=0, value=DEFAULT_MANAGEMENT_COST)
-    airbnb_commission = st.sidebar.slider("Comisión de Airbnb (%)", 0, 30, int(AIRBNB_COMMISSION * 100)) / 100
+    airbnb_commission = st.sidebar.slider("Comisión de Airbnb (%)", 0, 30, AIRBNB_COMMISSION) / 100
 
     # Annual Costs
     st.sidebar.subheader("Costos Anuales (% del Valor de la Propiedad)")
@@ -70,6 +74,11 @@ def main():
     insurance_rate = st.sidebar.slider("Tasa de Seguro (%)", 0.0, 5.0, DEFAULT_INSURANCE_RATE) / 100
     maintenance_rate = st.sidebar.slider("Tasa de Mantenimiento (%)", 0.0, 5.0, DEFAULT_MAINTENANCE_RATE) / 100
     repair_reserve_rate = st.sidebar.slider("Tasa de Reserva para Reparaciones (%)", 0.0, 5.0, DEFAULT_REPAIR_RESERVE_RATE) / 100
+
+    # Investor Profile
+    st.sidebar.subheader("Perfil del Inversor")
+    investor_1_containers = st.sidebar.number_input("Inversor 1: Número de Contenedores", min_value=0, value=DEFAULT_INVESTOR_1_CONTAINERS)
+    investor_2_containers = st.sidebar.number_input("Inversor 2: Número de Contenedores", min_value=0, value=DEFAULT_INVESTOR_2_CONTAINERS)
 
     # Calculate initial investment
     total_container_cost = num_containers * container_cost
@@ -148,6 +157,28 @@ def main():
     with col4:
         st.metric("Punto de Equilibrio", f"{break_even_months:.1f} meses/contenedor")
 
+    st.header("Retorno Por Inversor")
+    investor_1_monthly_revenue = total_monthly_revenue * investor_1_containers / num_containers
+    # Investor 1 owns the land, and therefore the mortgage is paid in full by investor 1
+    investor_1_monthly_expenses = mortgage_payment + (total_monthly_expenses - mortgage_payment) * investor_1_containers / num_containers
+    investor_1_monthly_profit = investor_1_monthly_revenue - investor_1_monthly_expenses
+    investor_1_annual_profit = investor_1_monthly_profit * 12
+    investor_1_roi = (investor_1_annual_profit / total_investment) * 100
+    investor_1_annual_yield = (investor_1_annual_profit / total_investment) * 100
+
+    investor_2_monthly_revenue = total_monthly_revenue * investor_2_containers / num_containers
+    # investor 2 does not pay mortgage, so we subtract the monthly mortgage payment from the total monthly expenses
+    investor_2_monthly_expenses = (total_monthly_expenses - mortgage_payment) * investor_2_containers / num_containers
+    investor_2_monthly_profit = investor_2_monthly_revenue - investor_2_monthly_expenses
+    investor_2_annual_profit = investor_2_monthly_profit * 12
+    investor_2_roi = (investor_2_annual_profit / total_investment) * 100
+    investor_2_annual_yield = (investor_2_annual_profit / total_investment) * 100
+
+    st.dataframe(pd.DataFrame({
+        "Inversor 1": [investor_1_containers, investor_1_monthly_revenue, investor_1_monthly_expenses, investor_1_monthly_profit, investor_1_annual_profit, investor_1_roi, investor_1_annual_yield],
+        "Inversor 2": [investor_2_containers, investor_2_monthly_revenue, investor_2_monthly_expenses, investor_2_monthly_profit, investor_2_annual_profit, investor_2_roi, investor_2_annual_yield]
+    }, index=["Contenedores", "Ingresos Mensuales", "Gastos Mensuales", "Beneficio Mensual", "Beneficio Anual", "ROI", "Rendimiento Anual"]))
+
     # Display monthly expenses breakdown
     st.header("Desglose de Gastos Mensuales")
     expenses_df = pd.DataFrame.from_dict(expenses, orient='index', columns=['Costo Mensual'])
@@ -166,8 +197,8 @@ def main():
     # Sensitivity Analysis
     st.header("Análisis de Sensibilidad")
     
-    occupancy_variations = np.array([0.5, 0.6, 0.7, 0.8, 0.9])
-    price_variations = np.array([80, 90, 100, 110, 120])
+    occupancy_variations = np.array([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9])
+    price_variations = np.array([40, 50, 60, 70, 80, 90, 100])
     
     profits = np.zeros((len(occupancy_variations), len(price_variations)))
     
